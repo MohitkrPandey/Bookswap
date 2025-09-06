@@ -8,8 +8,6 @@ mongoose.connect(URL_link,{
     useUnifiedTopology: true
 });
 
-const mongoose = require("mongoose");
-const { request } = require("http");
 
 //user schema
 
