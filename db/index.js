@@ -84,9 +84,11 @@ const creditsLogSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+const User = mongoose.model("User", userSchema);
+const Book = mongoose.model("Book", bookSchema);
+const Swap = mongoose.model("Swap", swapSchema);
+const SafeSpot = mongoose.model("SafeSpot", safeSpotSchema);
+const CreditsLog = mongoose.model("CreditsLog", creditsLogSchema);
 
 
-module.exports = mongoose.model("CreditsLog", creditsLogSchema);
-module.exports = mongoose.model("Swap", swapSchema);
-module.exports = mongoose.model("Book", bookSchema);
-module.exports = mongoose.model("User", userSchema);
+module.exports = { User, Book, Swap, SafeSpot, CreditsLog };
