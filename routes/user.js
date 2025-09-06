@@ -38,7 +38,6 @@ router.post('/signup', async (req, res) => {
 });
 
 //login user
-
 router.post('/login', async(req,res)=>{
     try{
         const {email,password} = req.body;
@@ -60,6 +59,7 @@ router.post('/login', async(req,res)=>{
 
 })
 
+//book shelve add books
 router.post('/book-shelve/addbooks', userMiddleware, async (req, res) => {
   try {
     const { title, author, coverUrl, genre, status } = req.body;
@@ -87,6 +87,7 @@ router.post('/book-shelve/addbooks', userMiddleware, async (req, res) => {
   }
 });
 
+//book shelve get books
 router.get('/book-shelve',userMiddleware,async(req,res)=>{
     try{
         const userDoc = await User.findOne({ email: req.headers.email });
@@ -103,6 +104,7 @@ router.get('/book-shelve',userMiddleware,async(req,res)=>{
     }
 })
 
+//get all swapes of user
 router.get("/my-swipes", userMiddleware, async (req, res) => {
   try {
     const userDoc = await User.findOne({ email: req.headers.email });
@@ -117,6 +119,7 @@ router.get("/my-swipes", userMiddleware, async (req, res) => {
   }
 });
 
+//create a swipe request
 router.post('/swipe',userMiddleware,async(req,res)=>{
     try {
     const { bookId, message , requesterName } = req.body;
@@ -143,6 +146,7 @@ router.post('/swipe',userMiddleware,async(req,res)=>{
   }
 });
 
+//confirm a swipe request
 router.post("/:id/request", userMiddleware, async (req, res) => {
     try {
     const user = await User.findOne({ email: req.headers.email });
@@ -164,44 +168,139 @@ router.post("/:id/request", userMiddleware, async (req, res) => {
   }
 });
 
+//complete a swipe request and add credits
 router.post('/:id/credits', userMiddleware, async (req, res) => {
   try {
     const swaprequest = await Swiperequest.findById(req.params.id);
-    
+    console.log(swaprequest);
     if (!swaprequest) {
       return res.status(404).json({ error: "Swap request not found" });
     }
 
+    // Fetch user using email from middleware
+    const user = await User.findOne({ email: req.headers.email });
+    if (!user) {
+      return res.status(400).json({ error: "User not found" });
+    }
+
     if (
-      swaprequest.requesterId.toString() !== req.user._id.toString() &&
-      swaprequest.ownerId.toString() !== req.user._id.toString()
-    ) {
+      swaprequest.requesterId.toString() !== user._id.toString()){
       return res.status(403).json({ error: "Not authorized to complete this action" });
     }
 
     swaprequest.status = "confirmed";
     await swaprequest.save();
 
-    // Update credits directly in the database
     await User.findByIdAndUpdate(
       swaprequest.requesterId,
       { $inc: { credits: 2 } }
     );
-    
     await User.findByIdAndUpdate(
       swaprequest.ownerId,
       { $inc: { credits: 2 } }
     );
 
+    //update credits log
+    const newcreditlog1 =  new CreditsLog({
+        userId: swaprequest.requesterId,
+        change: 2,
+        reason: "book_taken",
+        createdAt: Date.now()
+    })
+
+    const newcreditlog2 =  new CreditsLog({
+        userId: swaprequest.ownerId,
+        change: 2,
+        reason: "book_given",
+        createdAt: Date.now()
+    })
+
+    const newSwap = new Swap({
+      requesterId: swaprequest.requesterId,
+      ownerId: swaprequest.ownerId,
+      bookId: swaprequest.bookId,
+      status: "completed",
+      createdAt: Date.now(),
+      qrToken: Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
+    });
+    await newSwap.save();
+    await Swiperequest.findByIdAndDelete(req.params.id);
     res.status(200).json({
       message: "Swap request confirmed and +2 credits added to both users",
       swaprequest
     });
-
   } catch (err) {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
+//show my credits
+router.get('/my-credits', userMiddleware, async (req, res) => {
+    try{
+        const userDoc = await User.findOne({ email: req.headers.email });
+        if(!userDoc){
+            return res.status(400).json({error: "User not found"});
+        }
+        else{
+            res.status(200).json({credits: userDoc.credits});
+        }
+    }
+    catch(err){
+        res.status(500).json({error: "Internal server error"});
+    }
+});
+
+//Load 10 books at once 
+router.get('/explore', userMiddleware, async (req, res) => {
+    try{
+        const {skip=0 , limit=10 , userId} = req.query;
+        const books = await Book.find({ 
+        status: "available", 
+        userId: { $ne: userId } 
+        })
+        .skip(Number(skip))
+        .limit(Number(limit));
+        res.json(books);
+    }
+    catch(err){
+        res.status(500).json({error: "Internal server error"});
+    }
+})
+
+//load all swap requests of a user (owner)
+router.get('/swaprequests', userMiddleware, async (req, res) => { 
+    try{
+        const userDoc = await User.findOne({ email: req.headers.email });
+        if(!userDoc){
+            return res.status(400).json({error: "User not found"});
+        }
+        else{
+            const requests = await Swiperequest.find({ownerId: userDoc._id}).populate('bookId requesterId');
+            res.status(200).json({requests: requests});
+        }
+    }
+    catch(err){
+        res.status(500).json({error: "Internal server error"});
+    }
+})
+
+//get user details
+router.get('/details', userMiddleware, async (req, res) => {
+    try{
+        const userDoc = await User.findOne({ email: req.headers.email });
+        if(!userDoc){
+            return res.status(400).json({error: "User not found"});
+        }
+        else{
+            res.status(200).json({user: userDoc});
+        }
+    }
+    catch(err){
+        res.status(500).json({error: "Internal server error"});
+    }
+});
+
+//chat functionality import from chathandler.js
 
 
 
