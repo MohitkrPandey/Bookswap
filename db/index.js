@@ -21,7 +21,8 @@ const userSchema = new mongoose.Schema({
   },
   credits: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
-  interest: [String]
+  interest: [String],
+  reviews:[String]
 });
 
 //book schema
@@ -82,11 +83,25 @@ const creditsLogSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+//swipe schema
+
+const swapRequestSchema = new mongoose.Schema({
+  requesterId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // who clicked "Go"
+  ownerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // book owner
+  bookId: { type: mongoose.Schema.Types.ObjectId, ref: "Book", required: true },
+  requesterName: { type: String }, // optional name input
+  message: { type: String },       // optional message
+  status: { type: String, enum: ["pending", "confirmed","completed"], default: "pending" },
+  createdAt: { type: Date, default: Date.now }
+});
+
+
 const User = mongoose.model("User", userSchema);
 const Book = mongoose.model("Book", bookSchema);
 const Swap = mongoose.model("Swap", swapSchema);
 const SafeSpot = mongoose.model("SafeSpot", safeSpotSchema);
 const CreditsLog = mongoose.model("CreditsLog", creditsLogSchema);
+const Swiperequest = mongoose.model("Swiperequest", swapRequestSchema);
 
 
-module.exports = { User, Book, Swap, SafeSpot, CreditsLog };
+module.exports = { User, Book, Swap, SafeSpot, CreditsLog,Swiperequest };
