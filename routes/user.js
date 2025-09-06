@@ -199,7 +199,6 @@ router.post('/:id/credits', userMiddleware, async (req, res) => {
     });
 
   } catch (err) {
-    console.error("Error in /request/credits:", err);
     res.status(500).json({ error: "Internal server error" });
   }
 });
