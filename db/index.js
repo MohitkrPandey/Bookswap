@@ -57,14 +57,14 @@ const swapSchema = new mongoose.Schema({
 });
 
 //Safespot Schema
-
+//geojson format for location
 const safeSpotSchema = new mongoose.Schema({
     requesterId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     ownerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     bookid: { type: mongoose.Schema.Types.ObjectId, ref: "Book", required: true },
     Location: {
-        lat: Number,
-        lon: Number
+    type: { type: String, enum: ['Point'], default: 'Point' },
+    coordinates: { type: [Number], required: true } // [lon, lat]
     },
     status: {
     type: String,

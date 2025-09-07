@@ -394,6 +394,60 @@ router.get('/search-books', userMiddleware, async(req,res)=>{
     }
   })
 
+//book recomendations
+router.get('/reccomendations', userMiddleware, async(req,res)=>{
+  try{
+    const {userId} = req.query;
+    const userDoc = await User.findById(userId);
+    if(!userDoc){
+        return res.status(400).json({error: "User not found"});
+    }
+    const interests = userDoc.interest;
+    const books = await Book.aggregate([
+        { $match: { status: "available", userId: { $ne: userId }, genre: { $in: interests } } },
+        { $sample: { size: 10 } }
+    ]);
+    res.status(200).json({books: books});
+  }
+  catch(err){
+    res.status(500).json({ error: "Internal server error" });
+  }   
+})
+
+//nearest safe spot algorithm
+router.get('/nearest-safespot', userMiddleware, async(req,res)=>{
+    try {
+    const { lat, lon, query = "library" } = req.query;
+
+    if (!lat || !lon) {
+      return res.status(400).json({ error: "Latitude and longitude required" });
+    }
+
+    // OpenStreetMap Nominatim API call
+    const url = `https://nominatim.openstreetmap.org/search.php?q=${query}&format=json&limit=10&lat=${lat}&lon=${lon}&addressdetails=1`;
+
+    const response = await axios.get(url, {
+      headers: { "User-Agent": "BookSwapApp/1.0" } // required by Nominatim
+    });
+
+    const spots = response.data.map((spot) => ({
+      name: spot.display_name,
+      lat: spot.lat,
+      lon: spot.lon,
+      type: query
+    }));
+
+    res.status(200).json({ spots });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+//get the details of the selected safe spot 
+
+
+
 
 
 
