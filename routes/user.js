@@ -1,6 +1,6 @@
 const {Router} = require('express');
 const router = Router();
-const {User,Book,Swap,SafeSpot,Swiperequest} = require('../db');
+const {User,Book,Swap,SafeSpot,Swiperequest,Review} = require('../db');
 const userMiddleware = require('../middlewares/user');
 const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
@@ -300,7 +300,100 @@ router.get('/details', userMiddleware, async (req, res) => {
     }
 });
 
-//chat functionality import from chathandler.js
+//review a user
+router.post('/review', userMiddleware, async (req, res) => {
+    try {
+        const { revieweeId, rating, Comment } = req.body;
+        const reviewer = await User.findOne({ email: req.headers.email });
+        if (!reviewer) {
+            return res.status(400).json({ error: "Reviewer not found" });
+        }
+        const reviewee = await User.findById(revieweeId);
+        if (!reviewee) {
+            return res.status(400).json({ error: "Reviewee not found" });
+        }
+        const newReview = new Review({
+            reviewerId: reviewer._id,
+            revieweeId,
+            rating,
+            Comment,
+            createdAt: Date.now()
+        });
+        await newReview.save();
+        res.status(201).json({ message: "Review submitted successfully", review: newReview });
+      }
+    catch(err){
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+//show reviews of a user
+router.get('/reviews/:userId',async(req,res)=>{
+    try{
+      const reviews= await Review.find({
+          revieweeId: req.params.userId
+      }).populate('reviewerId');
+      res.status(200).json({reviews: reviews});
+    }
+    catch(err){
+      res.status(500).json({ error: "Internal server error" });
+    }
+  })
+
+//get random book for swipe basis of user genre interest which loads 10 books at once
+router.get('/swipe-random', userMiddleware , async(req,res)=>{
+  try{
+    const {userId} = req.query;
+    const userDoc = await User.findById(userId);
+    if(!userDoc){
+        return res.status(400).json({error: "User not found"});
+    }
+    const interests = userDoc.interest;
+    const books = await Book.aggregate([
+        { $match: { status: "available", userId: { $ne: userId }, genre: { $in: interests } } },
+        { $sample: { size: 10 } }
+    ]);
+    res.status(200).json({books: books});
+  }
+  catch(err){
+    res.status(500).json({ error: "Internal server error" });
+  }
+})
+
+//on every swipe shows the name of book , autor name , coverUrl , owner name ,genre
+router.get('/swipe-info/:bookId', userMiddleware, async(req,res)=>{
+  try{
+    const book = await Book.findById(req.params.bookId).populate('userId');
+    if(!book){
+        return res.status(400).json({error: "Book not found"});
+    }
+    res.status(200).json({book: book});
+  }
+  catch(err){
+    res.status(500).json({ error: "Internal server error" });
+  }
+})
+
+//serch books by title or author
+router.get('/search-books', userMiddleware, async(req,res)=>{
+  try{
+    const {query} = req.query;
+    if (!query || query.trim() === "") {
+      return res.status(400).json({ error: "Search query required" });
+    }
+    const books = await Book.find({
+      $or: [
+        { title: { $regex: query, $options: 'i' } },
+        {author: { $regex: query, $options: 'i' } }
+      ]
+    })
+    res.status(200).json({books: books});
+    }
+    catch(err){
+      res.status(500).json({ error: "Internal server error" });
+    }
+  })
+
 
 
 

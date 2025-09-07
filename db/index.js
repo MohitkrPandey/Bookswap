@@ -95,6 +95,15 @@ const swapRequestSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+//review schema
+const reviewSchema = new mongoose.Schema({
+  reviewerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  revieweeId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  rating: { type: Number, min: 1, max: 5, required: true },
+  Comment: { type: String },
+  createdAt: { type: Date, default: Date.now }
+});
+
 
 const User = mongoose.model("User", userSchema);
 const Book = mongoose.model("Book", bookSchema);
@@ -102,6 +111,7 @@ const Swap = mongoose.model("Swap", swapSchema);
 const SafeSpot = mongoose.model("SafeSpot", safeSpotSchema);
 const CreditsLog = mongoose.model("CreditsLog", creditsLogSchema);
 const Swiperequest = mongoose.model("Swiperequest", swapRequestSchema);
+const Review = mongoose.model("Review", reviewSchema);
 
 
 module.exports = { User, Book, Swap, SafeSpot, CreditsLog,Swiperequest };
