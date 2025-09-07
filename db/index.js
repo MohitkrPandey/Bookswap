@@ -56,23 +56,6 @@ const swapSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-//Safespot Schema
-//geojson format for location
-const safeSpotSchema = new mongoose.Schema({
-    requesterId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    ownerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    bookid: { type: mongoose.Schema.Types.ObjectId, ref: "Book", required: true },
-    Location: {
-    type: { type: String, enum: ['Point'], default: 'Point' },
-    coordinates: { type: [Number], required: true } // [lon, lat]
-    },
-    status: {
-    type: String,
-    enum: ["reached", "pending", "cancelled" , "completed"],
-    default: "pending"
-    },
-    createdAt: { type: Date, default: Date.now }
-})
 
 //credits schema
 
@@ -108,10 +91,9 @@ const reviewSchema = new mongoose.Schema({
 const User = mongoose.model("User", userSchema);
 const Book = mongoose.model("Book", bookSchema);
 const Swap = mongoose.model("Swap", swapSchema);
-const SafeSpot = mongoose.model("SafeSpot", safeSpotSchema);
 const CreditsLog = mongoose.model("CreditsLog", creditsLogSchema);
 const Swiperequest = mongoose.model("Swiperequest", swapRequestSchema);
 const Review = mongoose.model("Review", reviewSchema);
 
 
-module.exports = { User, Book, Swap, SafeSpot, CreditsLog,Swiperequest };
+module.exports = { User, Book, Swap, CreditsLog,Swiperequest,Review };

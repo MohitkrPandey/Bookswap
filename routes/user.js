@@ -1,8 +1,9 @@
 const {Router} = require('express');
 const router = Router();
-const {User,Book,Swap,SafeSpot,Swiperequest,Review} = require('../db');
+const {User,Book,Swap,Swiperequest,Review,CreditsLog} = require('../db');
 const userMiddleware = require('../middlewares/user');
 const jwt = require('jsonwebtoken');
+const axios = require('axios');
 const dotenv = require('dotenv');
 const { create } = require('domain');
 dotenv.config();
@@ -415,6 +416,19 @@ router.get('/reccomendations', userMiddleware, async(req,res)=>{
 })
 
 //nearest safe spot algorithm
+
+function getDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // Radius of the Earth in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in km
+}
+
 router.get('/nearest-safespot', userMiddleware, async(req,res)=>{
     try {
     const { lat, lon, query = "library" } = req.query;
@@ -424,18 +438,30 @@ router.get('/nearest-safespot', userMiddleware, async(req,res)=>{
     }
 
     // OpenStreetMap Nominatim API call
-    const url = `https://nominatim.openstreetmap.org/search.php?q=${query}&format=json&limit=10&lat=${lat}&lon=${lon}&addressdetails=1`;
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=20&viewbox=${parseFloat(lon)-0.1},${parseFloat(lat)+0.1},${parseFloat(lon)+0.1},${parseFloat(lat)-0.1}&bounded=1`;
 
     const response = await axios.get(url, {
-      headers: { "User-Agent": "BookSwapApp/1.0" } // required by Nominatim
+      headers: { "User-Agent": "BookSwapApp/1.0" }
     });
 
-    const spots = response.data.map((spot) => ({
-      name: spot.display_name,
-      lat: spot.lat,
-      lon: spot.lon,
-      type: query
-    }));
+    // Filter only spots within 5 km
+    const spots = response.data
+      .map((spot) => {
+        const distance = getDistance(
+          parseFloat(lat),
+          parseFloat(lon),
+          parseFloat(spot.lat),
+          parseFloat(spot.lon)
+        );
+        return {
+          name: spot.display_name,
+          lat: parseFloat(spot.lat),
+          lon: parseFloat(spot.lon),
+          distance: distance.toFixed(2), // km
+          type: query
+        };
+      })
+      .filter((spot) => spot.distance <= 5);
 
     res.status(200).json({ spots });
   } catch (err) {
@@ -444,7 +470,9 @@ router.get('/nearest-safespot', userMiddleware, async(req,res)=>{
   }
 });
 
-//get the details of the selected safe spot 
+
+
+
 
 
 
