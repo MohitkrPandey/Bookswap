@@ -1,7 +1,49 @@
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
+const path = require('path');
+// load local .env or fallback to repo root .env
 dotenv.config();
+const envPath = path.resolve(__dirname, '..', '..', '.env')
+dotenv.config({ path: envPath });
 const URL_link = process.env.MONGOOSE_URL;
+
+// debug: log resolved env path and the mongoose URL to help diagnose missing env vars
+try {
+  console.log('Resolved .env path:', envPath);
+  console.log('MONGOOSE_URL from process.env:', process.env.MONGOOSE_URL ? '[REDACTED]' : process.env.MONGOOSE_URL);
+} catch (e) {
+  console.error('Error printing env debug:', e);
+}
+
+// Extra debug: read the .env file directly to confirm it's present and contains the key
+const fs = require('fs');
+try {
+  const raw = fs.readFileSync(envPath, 'utf8');
+  const hasMongoose = /MONGOOSE_URL\s*=/.test(raw);
+  console.log('.env file readable:', !!raw);
+  console.log('MONGOOSE_URL present in file:', hasMongoose);
+  const m = raw.match(/MONGOOSE_URL\s*=\s*(.*)/);
+  if (m && m[1]) {
+    const val = m[1].trim();
+    console.log('MONGOOSE_URL in file (masked):', val.length > 10 ? val.slice(0,6) + '...' + val.slice(-4) : '[SHORT]');
+  }
+
+  // Fallback: if dotenv didn't populate the variable, parse and inject it explicitly
+  if (!process.env.MONGOOSE_URL && raw && raw.trim().length > 0) {
+    try {
+      const parsed = require('dotenv').parse(raw);
+      for (const k of Object.keys(parsed)) {
+        if (!process.env[k]) process.env[k] = parsed[k];
+      }
+      console.log('Parsed and injected env from fallback .env');
+    } catch (pe) {
+      console.error('Failed to parse fallback .env:', pe.message);
+    }
+  }
+
+} catch (e) {
+  console.error('Failed to read .env file at', envPath, e.message);
+}
 
 mongoose.connect(URL_link,{
     useNewUrlParser: true,

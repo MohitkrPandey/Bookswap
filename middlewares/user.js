@@ -1,5 +1,7 @@
 const dotenv = require('dotenv');
+const path = require('path');
 dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '..', '..', '.env') });
 const {User,Book,Swap,SafeSpot} = require('../db');
 const jwt = require('jsonwebtoken');
 const { decode } = require('punycode');

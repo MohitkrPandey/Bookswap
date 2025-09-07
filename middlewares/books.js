@@ -1,5 +1,7 @@
 const dotenv = require('dotenv');
+const path = require('path');
 dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '..', '..', '.env') });
 const jwt = require('jsonwebtoken');
 const { Book } = require('../db');
 const JWT_SECRET = process.env.JWT_SECRET;
